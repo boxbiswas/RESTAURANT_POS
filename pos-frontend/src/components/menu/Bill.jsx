@@ -5,9 +5,85 @@ import Modal from "../shared/Modal";
 import { useNavigate } from "react-router-dom";
 import ReceiptModal from "../shared/ReceiptModal";
 import logo from "../../assets/images/logo.png";
+import { createOrderRazorpay } from "../../https/index";
+import { useSelector } from "react-redux";
+import { getTotalPrice } from "../../redux/slices/cartSlice";
+import { useSnackbar } from "notistack";
+
+function loadScript(src) {
+    return new Promise((resolve) => {
+        const script = document.createElement("script");
+        script.src = src;
+        script.onload = () => {
+            resolve(true);
+        };
+        script.onerror = () => {
+            resolve(false);
+        }
+        document.body.appendChild(script);
+    });
+}
 
 
 const Bill = () => {
+
+        // const customerData = useSelector((state) => state.customer);
+        // const cartData = useSelector((state) => state.cart);
+        // const total = useSelector(getTotalPrice);
+        // const taxRate = 5.25;
+        // const tax = (total * taxRate) / 100;
+        // const totalPriceWithTax = total + tax;
+
+    const [paymentMethod, setPaymentMethod] = useState("");
+    const handlePlaceOrder = async () => {
+        if (!paymentMethod) {
+            enqueueSnackbar("Please select a payment method!", { variant: "warning" });
+            return;
+        }
+
+        //then load the Razorpay script
+        try {
+            const res = await loadScript("https://checkout.razorpay.com/v1/checkout.js");
+            if (!res) {
+                enqueueSnackbar("Failed to load Razorpay SDK. Are you online?", { variant: "warning" });
+                return;
+            }
+
+            // else proceed with creating order and payment
+            const reqData = {
+                amount: totalPriceWithTax.toFixed(2) // This should ideally come from the backend after order creation
+            }
+            const { data } = await createOrderRazorpay(reqData);
+            const options = {
+                key: `${import.meta.env.rzp_test_SYh4KVbiGyagRd}`,
+                amount: data.order.amount,
+                currency: data.order.currency,
+                name: "RESTRO",
+                description: "SECURE PAYMENT FOR YOUR MEAL",
+                order_id: data.order.id,
+                handler: async function (response) {
+                    // Handle successful payment
+                    console.log("Payment successful:", response);
+                },
+                prefill: {
+                    name: "Customer Name",
+                    email: "customer@example.com",
+                    contact: "9999999999"
+                },
+                theme: {
+                    color: "#025cca"
+                }
+            };
+
+            const rzp = new window.Razorpay(options);
+            rzp.open();
+
+        } catch (error) {
+            console.error("Error in loading Razorpay SDK:", error);
+            enqueueSnackbar("An error occurred while loading payment gateway. Please try again.", { variant: "error" });
+        }
+    }
+
     const navigate = useNavigate();
 
     const [isModalOpen, setIsModalOpen] = useState(false);
@@ -45,9 +121,9 @@ const Bill = () => {
             </div>
 
             <div className="flex items-center justify-between gap-3 px-5 mt-3">
-                <button className="flex flex-col items-center justify-center gap-1 bg-[#1f1f1f] px-4 py-3 w-full rounded-lg text-[#ababab] font-semibold"><FaMoneyBillWave className="text-xl" /> Cash</button>
-                <button className="flex flex-col items-center justify-center gap-1 bg-[#1f1f1f] px-4 py-3 w-full rounded-lg text-[#ababab] font-semibold"><FaCreditCard className="text-xl" /> Card</button>
-                <button className="flex flex-col items-center justify-center gap-1 bg-[#1f1f1f] px-4 py-3 w-full rounded-lg text-[#ababab] font-semibold"><FaQrcode className="text-xl" /> UPI</button>
+                <button onClick={ () => setPaymentMethod("Cash") } className={`flex flex-col items-center justify-center gap-1 bg-[#1f1f1f] px-4 py-3 w-full rounded-lg text-[#ababab] font-semibold ${paymentMethod === "Cash" ? "bg-[#383737]" : ""}`}><FaMoneyBillWave className="text-xl" /> Cash</button>
+                <button onClick={ () => setPaymentMethod("Card") } className={`flex flex-col items-center justify-center gap-1 bg-[#1f1f1f] px-4 py-3 w-full rounded-lg text-[#ababab] font-semibold ${paymentMethod === "Card" ? "bg-[#383737]" : ""}`}><FaCreditCard className="text-xl" /> Card</button>
+                <button onClick={ () => setPaymentMethod("UPI") } className={`flex flex-col items-center justify-center gap-1 bg-[#1f1f1f] px-4 py-3 w-full rounded-lg text-[#ababab] font-semibold ${paymentMethod === "UPI" ? "bg-[#383737]" : ""}`}><FaQrcode className="text-xl" /> UPI</button>
             </div>
 
             <div className="flex items-center justify-between gap-3 px-5 mt-3">
