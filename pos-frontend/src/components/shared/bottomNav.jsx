@@ -7,6 +7,7 @@ import { MdMenuBook } from "react-icons/md";
 import Modal from "./Modal";
 import { useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
+import { MdOutlineSettings } from "react-icons/md";
 
 const BottomNav = () => {
 
@@ -24,7 +25,7 @@ const BottomNav = () => {
             <button onClick={() => navigate("/")} className={`flex items-center justify-center gap-2 font-bold ${isActive("/") ? "text-[#f5f5f5] bg-[#343434]" : "text-[#ababab]"} w-[200px] py-2 rounded-[20px] cursor-pointer`}>< FaHome size={24} /><p>Home</p></button>
             <button onClick={() => navigate("/orders")} className={`flex items-center justify-center gap-2 font-bold ${isActive("/orders") ? "text-[#f5f5f5] bg-[#343434]" : "text-[#ababab]"} w-[200px] py-2 rounded-[20px] cursor-pointer`}><MdOutlineReorder size={24} /><p>Orders</p></button>
             <button onClick={() => navigate("/dashboard")} className={`flex items-center justify-center gap-2 font-bold ${isActive("/dashboard") ? "text-[#f5f5f5] bg-[#343434]" : "text-[#ababab]"} w-[200px] py-2 rounded-[20px] cursor-pointer`}><SiGoogleanalytics size={24} /><p>Analytics</p></button>
-            <button onClick={() => navigate("/more")} className={`flex items-center justify-center gap-2 font-bold ${isActive("/more") ? "text-[#f5f5f5] bg-[#343434]" : "text-[#ababab]"} w-[200px] py-2 rounded-[20px] cursor-pointer`}>< CiCircleMore size={24} /><p>More</p></button>
+            <button onClick={() => navigate("/settings")} className={`flex items-center justify-center gap-2 font-bold ${isActive("/settings") ? "text-[#f5f5f5] bg-[#343434]" : "text-[#ababab]"} w-[200px] py-2 rounded-[20px] cursor-pointer`}><MdOutlineSettings size={24} /><p>Settings</p></button>
             <button onClick={openModal} className="absolute bottom-8 bg-[#F6B100] text-[#f5f5f5] rounded-full p-3 items-center">
                 <MdMenuBook size={40} />
             </button>

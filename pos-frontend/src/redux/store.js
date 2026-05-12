@@ -1,10 +1,13 @@
 import { configureStore } from "@reduxjs/toolkit";
-import cartReducer from "./slices/cartSlice";
+import cartSlice from "./slices/cartSlice";
+import userSlice from "./slices/userSlice";
 
 const store = configureStore({
     reducer: {
-        cart: cartReducer
-    }
+        cart: cartSlice,
+        user: userSlice,
+    },
+    devTools: import.meta.env.NODE_ENV !== 'production', // Enable Redux DevTools in development only
 });
 
 export default store;

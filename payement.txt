@@ -1,5 +1,0 @@
-PS C:\Users\indra\OneDrive\Documents\POS SYSTEM\pos-backend> npm i razorpay crypto 
-
-api key= rzp_test_SYh4KVbiGyagRd
-
-test key secret = DZFcpprPqhOKWZp3WjHPGx8f

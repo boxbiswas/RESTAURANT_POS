@@ -6,6 +6,7 @@ import { useNavigate } from "react-router-dom";
 import ReceiptModal from "../shared/ReceiptModal";
 import logo from "../../assets/images/logo.png";
 import { createOrderRazorpay } from "../../https/index";
+import { verifyPaymentRazorpay } from "../../https/index";
 import { useSelector } from "react-redux";
 import { getTotalPrice } from "../../redux/slices/cartSlice";
 import { useSnackbar } from "notistack";
@@ -26,18 +27,26 @@ function loadScript(src) {
 
 
 const Bill = () => {
-
-        // const customerData = useSelector((state) => state.customer);
-        // const cartData = useSelector((state) => state.cart);
-        // const total = useSelector(getTotalPrice);
-        // const taxRate = 5.25;
-        // const tax = (total * taxRate) / 100;
-        // const totalPriceWithTax = total + tax;
+    const { enqueueSnackbar } = useSnackbar();
+    const total = useSelector(getTotalPrice);
+    const taxRate = 5.25;
+    const tax = (total * taxRate) / 100;
+    const totalPriceWithTax = total + tax;
 
     const [paymentMethod, setPaymentMethod] = useState("");
     const handlePlaceOrder = async () => {
+        if (totalPriceWithTax <= 0) {
+            enqueueSnackbar("Cart is empty. Add items before placing order.", { variant: "warning" });
+            return;
+        }
+
         if (!paymentMethod) {
             enqueueSnackbar("Please select a payment method!", { variant: "warning" });
+            return;
+        }
+
+        if (paymentMethod !== "Card") {
+            openModal();
             return;
         }
 
@@ -49,13 +58,20 @@ const Bill = () => {
                 return;
             }
 
+            if (!window.Razorpay) {
+                throw new Error("Razorpay SDK did not initialize");
+            }
+
             // else proceed with creating order and payment
             const reqData = {
-                amount: totalPriceWithTax.toFixed(2) // This should ideally come from the backend after order creation
+                amount: Number(totalPriceWithTax.toFixed(2))
             }
-            const { data } = await createOrderRazorpay(reqData);
+            const data = await createOrderRazorpay(reqData);
+            if (!data?.success || !data?.order?.id || !data?.key) {
+                throw new Error("Invalid order response from backend");
+            }
             const options = {
-                key: `${import.meta.env.rzp_test_SYh4KVbiGyagRd}`,
+                key: data.key,
                 amount: data.order.amount,
                 currency: data.order.currency,
                 name: "RESTRO",
@@ -63,7 +79,9 @@ const Bill = () => {
                 order_id: data.order.id,
                 handler: async function (response) {
                     // Handle successful payment
-                    console.log("Payment successful:", response);
+                    const verification = await verifyPaymentRazorpay(response);
+                    console.log(verification);
+                    enqueueSnackbar("Payment successful! Order placed.", { variant: "success" });
                 },
                 prefill: {
                     name: "Customer Name",
@@ -79,16 +97,19 @@ const Bill = () => {
             rzp.open();
 
         } catch (error) {
-            console.error("Error in loading Razorpay SDK:", error);
-            enqueueSnackbar("An error occurred while loading payment gateway. Please try again.", { variant: "error" });
+            console.error("Error while opening Razorpay gateway:", error);
+            enqueueSnackbar(error?.message || "An error occurred while loading payment gateway.", { variant: "error" });
         }
     }
+    
 
     const navigate = useNavigate();
 
     const [isModalOpen, setIsModalOpen] = useState(false);
     const openModal = () => setIsModalOpen(true);
     const closeModal = () => setIsModalOpen(false);
+
+    const items = useSelector((state) => state?.cart?.items ?? []);
 
     const [DateTime, setDateTime] = useState(new Date());
     
@@ -109,15 +130,15 @@ const Bill = () => {
         <>
             <div className="flex items-center justify-between px-5 mt-1">
                 <p className="text-[#ababab] text-md font-medium mt-1">Subtotal</p>
-                <h1 className="text-[#f5f5f5] text-md font-bold">₹360.00</h1>
+                <h1 className="text-[#f5f5f5] text-md font-bold">₹{total.toFixed(2)}</h1>
             </div>
             <div className="flex items-center justify-between px-5 mt-1">
                 <p className="text-[#ababab] text-md font-medium mt-1">Tax(5.25%)</p>
-                <h1 className="text-[#f5f5f5] text-md font-bold">₹18.90</h1>
+                <h1 className="text-[#f5f5f5] text-md font-bold">₹{tax.toFixed(2)}</h1>
             </div>
             <div className="flex items-center justify-between px-5 mt-1">
                 <p className="text-[#ababab] text-md font-medium mt-1">Total</p>
-                <h1 className="text-[#f5f5f5] text-md font-bold">₹378.90</h1>
+                <h1 className="text-[#f5f5f5] text-md font-bold">₹{totalPriceWithTax.toFixed(2)}</h1>
             </div>
 
             <div className="flex items-center justify-between gap-3 px-5 mt-3">
@@ -128,7 +149,7 @@ const Bill = () => {
 
             <div className="flex items-center justify-between gap-3 px-5 mt-3">
                 {/* <button className="bg-[#025cca] px-4 py-3 w-full rounded-lg text-[#f5f5f5] text-lg font-semibold">Print Receipt</button> */}
-                <button onClick={openModal} className="bg-[#f6b100] px-4 py-3 w-full rounded-lg text-[#1f1f1f] text-lg font-semibold">Place Order</button>
+                <button onClick={handlePlaceOrder} className="bg-[#f6b100] px-4 py-3 w-full rounded-lg text-[#1f1f1f] text-lg font-semibold">Place Order</button>
 
                 <ReceiptModal isOpen={isModalOpen} onClose={closeModal} title="RECEIPT">
                     {/* Header */}
@@ -157,16 +178,13 @@ const Bill = () => {
                             <span className="w-[25%] text-right text-[#f5f5f5]">Price</span>
                         </div>
                         <hr className="border-[#2a2a2a] border-t-2 w-[105%] relative -left-[3%]" />
-                        <div className="flex justify-between mt-1 mb-1">
-                            <span className="w-[50%] text-left text-[#f5f5f5]">Chicken Tikka Masala</span>
-                            <span className="w-[25%] text-center text-[#f5f5f5]">1</span>
-                            <span className="w-[25%] text-right text-[#f5f5f5]">₹280</span>
-                        </div>
-                        <div className="flex justify-between mt-1 mb-1">
-                            <span className="w-[50%] text-left text-[#f5f5f5]">Garlic Naan</span>
-                            <span className="w-[25%] text-center text-[#f5f5f5]">2</span>
-                            <span className="w-[25%] text-right text-[#f5f5f5]">₹80</span>
-                        </div>
+                        {items.map((item) => (
+                            <div key={item._id} className="flex justify-between mt-1 mb-1">
+                                <span className="w-[50%] text-left text-[#f5f5f5] text-sm">{item.name}</span>
+                                <span className="w-[25%] text-center text-[#f5f5f5] text-sm">{item.quantity}</span>
+                                <span className="w-[25%] text-right text-[#f5f5f5] text-sm">₹{(item.price * item.quantity).toFixed(2)}</span>
+                            </div>
+                        ))}
                     </div>
                     <hr className="border-[#2a2a2a] border-t-2 w-[105%] relative -left-[3%]" />
 
@@ -174,24 +192,26 @@ const Bill = () => {
                     <div className="py-2">
                         <div className="flex justify-between mb-1">
                             <span className="text-[#f5f5f5] text-sm">Subtotal</span>
-                            <span className="text-[#f5f5f5] text-sm">₹360.00</span>
+                            <span className="text-[#f5f5f5] text-sm">₹{total.toFixed(2)}</span>
                         </div>
                         <div className="flex justify-between mb-1">
                             <span className="text-[#f5f5f5] text-sm">Tax (5.25%)</span>
-                            <span className="text-[#f5f5f5] text-sm">₹18.90</span>
+                            <span className="text-[#f5f5f5] text-sm">₹{tax.toFixed(2)}</span>
                         </div>
                         <div className="flex justify-between font-bold mt-1 text-base">
                             <span className="text-[#f5f5f5] text-md">Total</span>
-                            <span className="text-[#f5f5f5] text-md">₹378.90</span>
+                            <span className="text-[#f5f5f5] text-md">₹{totalPriceWithTax.toFixed(2)}</span>
                         </div>
                     </div>
                     <hr className="border-[#2a2a2a] border-t-2 w-[105%] relative -left-[3%]" />
 
                     {/* QR AREA */}
-                    <div className="flex flex-col items-center justify-center text-center mt-2">
-                        <img src="https://api.qrserver.com/v1/create-qr-code/?size=80x80&data=Order1024" alt="QR Code" className="mb-2" />
-                        <h2 className="text-xs font-bold text-[#f5f5f5]">THANK YOU FOR THE VISIT !</h2>
-                    </div>
+                    {paymentMethod === "UPI" && (
+                        <div className="flex flex-col items-center justify-center text-center mt-2">
+                            <img src="https://api.qrserver.com/v1/create-qr-code/?size=80x80&data=Order1024" alt="QR Code" className="mb-2" />
+                            <h2 className="text-xs font-bold text-[#f5f5f5]">THANK YOU FOR THE VISIT !</h2>
+                        </div>
+                    )}
                     {/* Print Button */}
                     <button className="w-full bg-[#025cca] text-[#f5f5f5] rounded-lg py-3 mt-4 text-lg font-bold hover:bg-[#0249a0] transition-colors">
                         PRINT RECEIPT

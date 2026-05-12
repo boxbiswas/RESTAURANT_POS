@@ -1,12 +1,23 @@
 @import "tailwindcss";
-@tailwind base;
-@tailwind components;
-@tailwind utilities;
-
 @import url('https://fonts.googleapis.com/css2?family=Inter:ital,opsz,wght@0,14..32,100..900;1,14..32,100..900&display=swap');
 
 body{
   font-family: 'Inter', sans-serif;
+}
+
+input:-webkit-autofill,
+input:-webkit-autofill:hover,
+input:-webkit-autofill:focus,
+textarea:-webkit-autofill,
+textarea:-webkit-autofill:hover,
+textarea:-webkit-autofill:focus,
+select:-webkit-autofill,
+select:-webkit-autofill:hover,
+select:-webkit-autofill:focus {
+  -webkit-box-shadow: 0 0 0px 1000px #1f1f1f inset;
+  -webkit-text-fill-color: #ffffff;
+  caret-color: #ffffff;
+  transition: background-color 9999s ease-out 0s;
 }
 
 @layer utilities {
@@ -14,4 +25,26 @@ body{
   .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
   .scrollbar-hide::-webkit-scrollbar { display: none; }
   .scrollbar-hide { -ms-overflow-style: none; scrollbar-width: none; }
+}
+
+.fullscreen-loader {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background-color: #1f1f1f;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 9999;
+}
+
+.spinner {
+  border: 4px solid rgba(255, 255, 255, 0.3);
+  border-top: 8px solid #f6b100;
+  border-radius: 50%;
+  width: 50px;
+  height: 50px;
+  animation: spin 1s linear infinite;
 }
