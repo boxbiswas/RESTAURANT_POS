@@ -1,3 +1,5 @@
+
+/*
 import chickenBiyani from '../assets/images/Chicken Biryani.jpg';
 import { GiSlicedBread, GiNoodles } from "react-icons/gi";
 import { BiSolidDrink } from "react-icons/bi";
@@ -280,3 +282,6 @@ export const menus = [
     }
 
 ];
+*/
+
+

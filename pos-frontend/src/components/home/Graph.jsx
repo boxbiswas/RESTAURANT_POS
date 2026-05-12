@@ -1,119 +1,129 @@
-import React from "react";
-import { useState, useEffect } from "react";
-import { FaSearch } from "react-icons/fa";
-import OrderList from "./OrderList";
-import { Bar } from "react-chartjs-2";
-
-import { Chart as ChartJS, CategoryScale, LinearScale, PointElement, LineElement, BarElement, Title, Tooltip, Legend, Filler } from 'chart.js';
-
-
-ChartJS.register(
+import React from 'react';
+import { Bar } from 'react-chartjs-2';
+import {
+    Chart as ChartJS,
     CategoryScale,
     LinearScale,
-    PointElement,
-    LineElement,
     BarElement,
-    Title,
     Tooltip,
     Legend,
-    Filler
-);
+} from 'chart.js';
 
-const Graph = () => {
+ChartJS.register(CategoryScale, LinearScale, BarElement, Tooltip, Legend);
 
-    const doughnutData = {
-        labels: ["12 PM - 2 PM", "2 PM - 4 PM", "4 PM - 6 PM", "6 PM - 8 PM", "8 PM - 10 PM"],
+const Graph = ({ peakHourData = [], paymentMethodData = [] }) => {
+    const peakHourChart = {
+        labels: ['12-2', '2-4', '4-6', '6-8', '8-10'],
         datasets: [
             {
-                label: "Orders",
-                data: [40, 25, 45, 90, 120],
-                backgroundColor: [
-                    '#6366F1',  // Indigo
-                    '#8B5CF6',  // Violet
-                    '#A855F7',  // Purple
-                    '#D946EF',  // Fuchsia
-                    '#EC4899',  // Pink
-                ],
-                borderColor: '#1f1f1f',
-                borderColor: '#1f1f1f',
-                borderWidth: 1,
-                borderRadius: 4
+                label: 'Orders',
+                data: peakHourData,
+                backgroundColor: '#f6b100',
+                borderRadius: 8,
             },
         ],
     };
 
-    const barOptions = {
+    const paymentChart = {
+        labels: ['Cash', 'UPI', 'Card'],
+        datasets: [
+            {
+                label: 'Payments',
+                data: paymentMethodData,
+                backgroundColor: ['#02ca3a', '#f6b100', '#025cca'],
+                borderRadius: 8,
+            },
+        ],
+    };
+
+    const peakHourOptions = {
         responsive: true,
         maintainAspectRatio: false,
         plugins: {
             legend: {
-                display: false,
+                labels: {
+                    color: '#d9d9d9',
+                },
             },
         },
         scales: {
             x: {
-                grid: {
-                    display: false,
-                    color: '#2a2a2a'
-                },
-                ticks: {
-                    color: '#ababab'
-                }
+                ticks: { color: '#ababab' },
+                grid: { color: 'rgba(255,255,255,0.05)' },
             },
             y: {
-                grid: {
-                    color: '#2a2a2a'
-                },
-                ticks: {
-                    color: '#ababab'
-                }
-            }
-        }
+                beginAtZero: true,
+                ticks: { color: '#ababab', precision: 0 },
+                grid: { color: 'rgba(255,255,255,0.06)' },
+            },
+        },
     };
 
-    const paymentData = {
-        labels: ["Cash", "UPI", "Card"],
-        datasets: [
-            {
-                label: "Orders",
-                data: [35, 45, 20],
-                backgroundColor: [
-                    '#02ca3a',  // User requested Green
-                    '#f6b100',  // User requested Yellow
-                    '#025cca',  // Deep App Blue
-                ],
-                borderColor: '#1f1f1f',
-                borderColor: '#1f1f1f',
-                borderWidth: 1,
-                borderRadius: 4
+    const paymentOptions = {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+            legend: {
+                labels: {
+                    color: '#d9d9d9',
+                    generateLabels: (chart) => {
+                        const data = chart.data;
+                        if (data.labels.length && data.datasets.length) {
+                            return data.labels.map((label, i) => {
+                                const meta = chart.getDatasetMeta(0);
+                                const style = meta.controller.getStyle(i);
+                                return {
+                                    text: label,
+                                    fillStyle: style.backgroundColor,
+                                    strokeStyle: style.borderColor,
+                                    lineWidth: style.borderWidth,
+                                    fontColor: '#d9d9d9',
+                                    hidden: false,
+                                    index: i
+                                };
+                            });
+                        }
+                        return [];
+                    }
+                },
             },
-        ],
+        },
+        scales: {
+            x: {
+                ticks: { color: '#ababab' },
+                grid: { color: 'rgba(255,255,255,0.05)' },
+            },
+            y: {
+                beginAtZero: true,
+                ticks: { color: '#ababab', precision: 0 },
+                grid: { color: 'rgba(255,255,255,0.06)' },
+            },
+        },
     };
 
     return (
-        <div className='px-8 mt-6'>
-            <div className='bg-[#1a1a1a] h-[calc(71vh-5rem)] overflow-hidden flex flex-col p-6 pb-20 gap-3 rounded-[15px]'>
-                <div className='flex-1 grid grid-cols-2 gap-4'>
+        <div className="grid grid-cols-1 xl:grid-cols-2 gap-4 px-8 mt-6 flex-1 min-h-0">
+            <div className="rounded-[18px] border border-[#2a2a2a] bg-[#1a1a1a] p-5 flex flex-col min-h-0">
+                <div className="mb-4">
+                    <h2 className="text-[#f5f5f5] text-lg font-bold">Peak Hours</h2>
+                    <p className="text-[#ababab] text-xs">Orders placed during the day</p>
+                </div>
+                <div className="flex-1 w-full relative min-h-[200px]">
+                    <Bar data={peakHourChart} options={peakHourOptions} />
+                </div>
+            </div>
 
-                    {/*Left Division*/}
-                    <div className="bg-[#1f1f1f] h-[450px] rounded-[15px] w-full p-6 flex flex-col">
-                        <h2 className="text-[#f5f5f5] text-lg font-semibold tracking-wide mb-6">Peak Hours</h2>
-                        <div className="relative flex-1 w-full h-full">
-                            <Bar data={doughnutData} options={barOptions} />
-                        </div>
-                    </div>
-
-                    {/*Right Division*/}
-                    <div className="bg-[#1f1f1f] h-[450px] rounded-[15px] w-full p-6 flex flex-col">
-                        <h2 className="text-[#f5f5f5] text-lg font-semibold tracking-wide mb-6">Payment Methods</h2>
-                        <div className="relative flex-1 w-full h-full">
-                            <Bar data={paymentData} options={barOptions} />
-                        </div>
-                    </div>
+            <div className="rounded-[18px] border border-[#2a2a2a] bg-[#1a1a1a] p-5 flex flex-col min-h-0">
+                <div className="mb-4">
+                    <h2 className="text-[#f5f5f5] text-lg font-bold">Payment Mix</h2>
+                    <p className="text-[#ababab] text-xs">Distribution by payment method</p>
+                </div>
+                <div className="flex-1 w-full relative min-h-[200px]">
+                    <Bar data={paymentChart} options={paymentOptions} />
                 </div>
             </div>
         </div>
-    )
-}
+    );
+};
 
 export default Graph;

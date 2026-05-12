@@ -1,4 +1,4 @@
-import React from 'react'
+import React, { useState, useEffect } from 'react'
 import BottomNav from '../components/shared/bottomNav'
 import BackButton from '../components/shared/BackButton'
 import { FaMoneyBillWave } from "react-icons/fa";
@@ -7,6 +7,7 @@ import { Bar, Line, Doughnut } from 'react-chartjs-2';
 import { Chart as ChartJS, CategoryScale, LinearScale, PointElement, LineElement, Title, Tooltip, Legend, Filler } from 'chart.js';
 import TotalAnalysis from '../components/dashboard/TotalAnalysis';
 import TodayAnalysis from '../components/dashboard/TodayAnalysis';
+import { getOrders } from '../https/index';
 
 ChartJS.register(
     CategoryScale,
@@ -20,29 +21,104 @@ ChartJS.register(
 );
 
 const DashBoard = () => {
+    const [orders, setOrders] = useState([]);
+
+    useEffect(() => {
+        const fetchOrders = async () => {
+            try {
+                const res = await getOrders();
+                if (res?.data?.data) {
+                    setOrders(res.data.data);
+                }
+            } catch (err) {
+                console.error(err);
+            }
+        };
+        fetchOrders();
+    }, []);
+
+    const totalSales = orders.reduce((sum, order) => sum + (order.bills?.totalWithTax || 0), 0).toFixed(2);
+    const totalOrders = orders.length;
+
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const todaysOrders = orders.filter(order => new Date(order.orderDate) >= today);
+    const todaySales = todaysOrders.reduce((sum, order) => sum + (order.bills?.totalWithTax || 0), 0).toFixed(2);
+    const todayOrdersCount = todaysOrders.length;
+
+    const last7Days = Array.from({ length: 7 }).map((_, i) => {
+        const d = new Date();
+        d.setDate(d.getDate() - i);
+        d.setHours(0, 0, 0, 0);
+        return d;
+    }).reverse();
+
+    const weeklySalesData = last7Days.map(day => {
+        const nextDay = new Date(day);
+        nextDay.setDate(day.getDate() + 1);
+        const dayOrders = orders.filter(o => {
+            const orderDate = new Date(o.orderDate);
+            return orderDate >= day && orderDate < nextDay;
+        });
+        return dayOrders.reduce((sum, o) => sum + (o.bills?.totalWithTax || 0), 0);
+    });
+
+    const weeklyCustomersData = last7Days.map(day => {
+        const nextDay = new Date(day);
+        nextDay.setDate(day.getDate() + 1);
+        const dayOrders = orders.filter(o => {
+            const orderDate = new Date(o.orderDate);
+            return orderDate >= day && orderDate < nextDay;
+        });
+        return dayOrders.reduce((sum, o) => sum + (o.customerDetails?.guests || 1), 0);
+    });
+
+    const weeklyLabels = last7Days.map(day => day.toLocaleDateString('en-US', { weekday: 'short' }));
+
+    const timeLabels = ['8 AM', '10 AM', '12 PM', '2 PM', '4 PM', '6 PM', '8 PM'];
+    const timeIntervals = [8, 10, 12, 14, 16, 18, 20];
+
+    const todaySalesData = timeIntervals.map((hour, index) => {
+        const nextHour = timeIntervals[index + 1] || 24;
+        const intervalOrders = todaysOrders.filter(o => {
+            const orderHour = new Date(o.orderDate).getHours();
+            return orderHour >= hour && orderHour < nextHour;
+        });
+        return intervalOrders.reduce((sum, o) => sum + (o.bills?.totalWithTax || 0), 0);
+    });
+
+    const todayCustomersData = timeIntervals.map((hour, index) => {
+        const nextHour = timeIntervals[index + 1] || 24;
+        const intervalOrders = todaysOrders.filter(o => {
+            const orderHour = new Date(o.orderDate).getHours();
+            return orderHour >= hour && orderHour < nextHour;
+        });
+        return intervalOrders.reduce((sum, o) => sum + (o.customerDetails?.guests || 1), 0);
+    });
+
     return (
         <section>
-            <div className='bg-[#1f1f1f] h-[calc(100vh-5rem)] overflow-hidden flex flex-col p-6 pb-20 gap-3'>
+            <div className='bg-[#1f1f1f] h-[calc(100vh-80px)] overflow-hidden flex flex-col p-6 pb-24 gap-3'>
                 {/* Header */}
                 <div className='flex items-center mx-2 gap-4'>
                     <BackButton />
                     <h1 className='text-[#f5f5f5] text-4xl font-bold tracking-wide'>Analytics</h1>
                 </div>
 
-                <div className='flex-1 grid grid-cols-2 gap-4'>
+                <div className='flex-1 grid grid-cols-2 gap-6 min-h-0 mt-2'>
 
                     {/*Left Division*/}
-                    <div className="bg-[#1a1a1a] h-[560px] rounded-lg w-full">
-                        <TotalAnalysis />
+                    <div className="bg-[#1a1a1a] rounded-[15px] w-full flex flex-col min-h-0 pb-4 shadow-lg border border-[#2a2a2a]">
+                        <TotalAnalysis totalSales={totalSales} totalOrders={totalOrders} />
                         {/* Graph Placeholder */}
-                        <div className="flex bg-[#1f1f1f] rounded-lg mt-4 min-h-[350px] mx-4 w-[96%] p-4">
+                        <div className="relative flex-1 bg-[#1f1f1f] rounded-[15px] mt-4 mx-4 p-4 border border-[#2a2a2a] min-h-0">
                             <Line
                                 data={{
-                                    labels: ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'],
+                                    labels: weeklyLabels,
                                     datasets: [
                                         {
                                             label: 'Sales',
-                                            data: [500, 700, 450, 900, 1200, 1500, 1000],
+                                            data: weeklySalesData,
                                             borderColor: '#02ca3a',
                                             backgroundColor: 'rgba(2, 202, 58, 0.1)',
                                             borderWidth: 2,
@@ -52,7 +128,7 @@ const DashBoard = () => {
                                         },
                                         {
                                             label: 'Total Customers',
-                                            data: [450, 600, 500, 800, 1050, 1400, 950],
+                                            data: weeklyCustomersData,
                                             borderColor: '#f6b100',
                                             backgroundColor: 'rgba(246, 177, 0, 0.1)',
                                             borderWidth: 2,
@@ -81,17 +157,17 @@ const DashBoard = () => {
                     </div>
 
                     {/*Right Division*/}
-                    <div className="bg-[#1a1a1a] h-[560px] rounded-lg w-full">
-                        <TodayAnalysis />
+                    <div className="bg-[#1a1a1a] rounded-[15px] w-full flex flex-col min-h-0 pb-4 shadow-lg border border-[#2a2a2a]">
+                        <TodayAnalysis todaySales={todaySales} todayOrders={todayOrdersCount} />
                         {/* Graph Placeholder */}
-                        <div className="flex bg-[#1f1f1f] rounded-lg mt-4 min-h-[350px] mx-4 w-[96%] p-4">
+                        <div className="relative flex-1 bg-[#1f1f1f] rounded-[15px] mt-4 mx-4 p-4 border border-[#2a2a2a] min-h-0">
                             <Line
                                 data={{
-                                    labels: ['8 AM', '10 AM', '12 PM', '2 PM', '4 PM', '6 PM', '8 PM'],
+                                    labels: timeLabels,
                                     datasets: [
                                         {
                                             label: "Today's Sales",
-                                            data: [120, 250, 180, 300, 200, 450, 350],
+                                            data: todaySalesData,
                                             borderColor: '#02ca3a',
                                             backgroundColor: 'rgba(2, 202, 58, 0.1)',
                                             borderWidth: 2,
@@ -101,7 +177,7 @@ const DashBoard = () => {
                                         },
                                         {
                                             label: "Today's Customers",
-                                            data: [4, 10, 6, 15, 8, 20, 14],
+                                            data: todayCustomersData,
                                             borderColor: '#f6b100',
                                             backgroundColor: 'rgba(246, 177, 0, 0.1)',
                                             borderWidth: 2,
