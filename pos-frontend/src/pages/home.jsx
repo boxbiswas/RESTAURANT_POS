@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React from 'react';
 import BottomNav from '../components/shared/bottomNav';
 import Greetings from '../components/home/Greetings';
 import MiniCard from '../components/home/MiniCard';
@@ -6,25 +6,11 @@ import { BsCashCoin } from "react-icons/bs";
 import { GrInProgress } from "react-icons/gr";
 import RecentOrders from '../components/home/RecentOrders';
 import Graph from '../components/home/Graph';
-import { getOrders } from '../https/index';
+import useLiveOrders from '../hooks/useLiveOrders';
 
 
 const Home = () => {
-    const [orders, setOrders] = useState([]);
-
-    useEffect(() => {
-        const fetchOrders = async () => {
-            try {
-                const res = await getOrders();
-                if (res?.data?.data) {
-                    setOrders(res.data.data.reverse());
-                }
-            } catch (err) {
-                console.error(err);
-            }
-        };
-        fetchOrders();
-    }, []);
+    const orders = useLiveOrders();
 
     const inProgressOrdersCount = orders.filter(o => o.orderStatus === 'in-progress').length;
     const totalSales = orders.reduce((acc, curr) => acc + (curr.bills?.totalWithTax || 0), 0).toFixed(2);
@@ -70,12 +56,12 @@ const Home = () => {
     const ordersGrowth = yesterdayOrdersCount === 0 ? (todayOrdersCount > 0 ? 100 : 0) : (((todayOrdersCount - yesterdayOrdersCount) / yesterdayOrdersCount) * 100);
 
     // Dynamic Graph Data Calculation
-    const peakHourData = [0, 0, 0, 0, 0]; // 12-2, 2-4, 4-6, 6-8, 8-10
+    const peakHourData = Array(12).fill(0); // 12 AM-2 AM through 10 PM-12 AM
     const paymentMethodData = [0, 0, 0]; // Cash, UPI, Card
 
     orders.forEach(order => {
         // Payment methods
-        const paymentMethod = (order.paymentMethod || order.bills?.paymentMethod || 'cash').toLowerCase();
+        const paymentMethod = String(order.paymentMethod || order.bills?.paymentMethod || 'cash').toLowerCase();
         if (paymentMethod === 'cash') paymentMethodData[0]++;
         else if (paymentMethod === 'upi') paymentMethodData[1]++;
         else if (paymentMethod === 'card') paymentMethodData[2]++;
@@ -84,11 +70,8 @@ const Home = () => {
         // Peak Hours
         if (order.orderDate) {
             const hour = new Date(order.orderDate).getHours(); // 0-23
-            if (hour >= 12 && hour < 14) peakHourData[0]++;
-            else if (hour >= 14 && hour < 16) peakHourData[1]++;
-            else if (hour >= 16 && hour < 18) peakHourData[2]++;
-            else if (hour >= 18 && hour < 20) peakHourData[3]++;
-            else if (hour >= 20 && hour < 22) peakHourData[4]++;
+            const bucketIndex = Math.min(Math.floor(hour / 2), 11);
+            peakHourData[bucketIndex]++;
         }
     });
 

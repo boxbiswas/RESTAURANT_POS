@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react'
+import React from 'react'
 import BottomNav from '../components/shared/bottomNav'
 import BackButton from '../components/shared/BackButton'
 import { FaMoneyBillWave } from "react-icons/fa";
@@ -7,7 +7,7 @@ import { Bar, Line, Doughnut } from 'react-chartjs-2';
 import { Chart as ChartJS, CategoryScale, LinearScale, PointElement, LineElement, Title, Tooltip, Legend, Filler } from 'chart.js';
 import TotalAnalysis from '../components/dashboard/TotalAnalysis';
 import TodayAnalysis from '../components/dashboard/TodayAnalysis';
-import { getOrders } from '../https/index';
+import useLiveOrders from '../hooks/useLiveOrders';
 
 ChartJS.register(
     CategoryScale,
@@ -21,21 +21,7 @@ ChartJS.register(
 );
 
 const DashBoard = () => {
-    const [orders, setOrders] = useState([]);
-
-    useEffect(() => {
-        const fetchOrders = async () => {
-            try {
-                const res = await getOrders();
-                if (res?.data?.data) {
-                    setOrders(res.data.data);
-                }
-            } catch (err) {
-                console.error(err);
-            }
-        };
-        fetchOrders();
-    }, []);
+    const orders = useLiveOrders();
 
     const totalSales = orders.reduce((sum, order) => sum + (order.bills?.totalWithTax || 0), 0).toFixed(2);
     const totalOrders = orders.length;
@@ -75,8 +61,17 @@ const DashBoard = () => {
 
     const weeklyLabels = last7Days.map(day => day.toLocaleDateString('en-US', { weekday: 'short' }));
 
-    const timeLabels = ['8 AM', '10 AM', '12 PM', '2 PM', '4 PM', '6 PM', '8 PM'];
-    const timeIntervals = [8, 10, 12, 14, 16, 18, 20];
+    const timeIntervals = Array.from({ length: 12 }, (_, index) => index * 2);
+    const timeLabels = timeIntervals.map((hour) => {
+        const nextHour = (hour + 2) % 24;
+        const formatHour = (value) => {
+            if (value === 0) return '12 AM';
+            if (value === 12) return '12 PM';
+            return `${value > 12 ? value - 12 : value} ${value > 12 ? 'PM' : 'AM'}`;
+        };
+
+        return `${formatHour(hour)} - ${formatHour(nextHour)}`;
+    });
 
     const todaySalesData = timeIntervals.map((hour, index) => {
         const nextHour = timeIntervals[index + 1] || 24;

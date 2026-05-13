@@ -7,20 +7,21 @@ const connectDB = async () => {
     try {
         const conn = await mongoose.connect(config.databaseURI, {
             serverSelectionTimeoutMS: 5000,
+            dbName: config.databaseName,
         });
-        console.log(`MongoDB Connected: ${conn.connection.host}`);
+        console.log(`MongoDB Connected: ${conn.connection.host}/${conn.connection.name}`);
     } catch (error) {
         console.log(`Primary MongoDB connection failed: ${error.message}`);
 
-        try {
-            const conn = await mongoose.connect(fallbackURI, {
-                serverSelectionTimeoutMS: 5000,
-            });
-            console.log(`MongoDB Connected (fallback): ${conn.connection.host}`);
-        } catch (fallbackError) {
-            console.log(`Fallback MongoDB connection failed: ${fallbackError.message}`);
-            throw fallbackError;
+        if (!config.allowDbFallback) {
+            throw error;
         }
+
+        const conn = await mongoose.connect(fallbackURI, {
+            serverSelectionTimeoutMS: 5000,
+            dbName: config.databaseName,
+        });
+        console.log(`MongoDB Connected (fallback): ${conn.connection.host}/${conn.connection.name}`);
     }
 }
 

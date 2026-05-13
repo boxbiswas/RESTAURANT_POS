@@ -8,6 +8,7 @@ const initialState = {
     discountPercent: '0',
     receiptFooter: 'Thank you for dining with us. Visit again!',
     restaurantName: 'Restro Cafe',
+    logo: '',
 };
 
 const settingsSlice = createSlice({

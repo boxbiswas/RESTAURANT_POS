@@ -38,6 +38,7 @@ app.use("/api/payment", require("./routes/paymentRoute"));
 app.use("/api/user", require("./routes/userRoute"));
 app.use("/api/order", require("./routes/orderRoute"));
 app.use("/api/settings", require("./routes/settingsRoute"));
+app.use("/api/dev", require("./routes/devRoute"));
 
 //ERROR HANDLING MIDDLEWARE
 app.use((err, req, res, next) => {

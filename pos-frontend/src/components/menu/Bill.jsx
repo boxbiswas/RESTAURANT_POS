@@ -2,7 +2,6 @@ import React, { useState, useEffect } from "react";
 import { FaMoneyBillWave, FaCreditCard, FaQrcode } from "react-icons/fa";
 import Modal from "../shared/Modal";
 import ReceiptModal from "../shared/ReceiptModal";
-import logo from "../../assets/images/logo.png";
 import { createOrderRazorpay, verifyPaymentRazorpay, addOrder } from "../../https/index";
 import { useSelector, useDispatch } from "react-redux";
 import { getTotalPrice, clearCart } from "../../redux/slices/cartSlice";
@@ -48,6 +47,7 @@ const Bill = () => {
     const [DateTime, setDateTime] = useState(new Date());
     const [razorpayDetails, setRazorpayDetails] = useState(null);
     const [receiptData, setReceiptData] = useState(null);
+    const [orderPlaced, setOrderPlaced] = useState(false);
 
     const items = useSelector((state) => state?.cart?.items ?? []);
 
@@ -66,6 +66,28 @@ const Bill = () => {
 
     const formatTime = (date) =>
         `${String(date.getHours()).padStart(2, "0")}:${String(date.getMinutes()).padStart(2, "0")}:${String(date.getSeconds()).padStart(2, "0")}`;
+
+    const createOrderPayload = (method) => ({
+        customerDetails: {
+            name: customerName,
+            phone: customerPhone,
+            guests: customerData?.guests || 1,
+        },
+        orderStatus: "completed",
+        bills: {
+            totals: subtotal,
+            tax: taxAmount,
+            totalWithTax: totalPriceWithTax,
+        },
+        items,
+        paymentMethod: method,
+        paymentStatus: "Completed"
+    });
+
+    const persistOrder = async (method) => {
+        await addOrder(createOrderPayload(method));
+        setOrderPlaced(true);
+    };
 
     const handlePlaceOrder = async () => {
         if (totalPriceWithTax <= 0) {
@@ -94,25 +116,11 @@ const Bill = () => {
             paymentMethod
         };
         setReceiptData(currentReceipt);
+        setOrderPlaced(false);
 
         if (paymentMethod !== "Card") {
             try {
-                await addOrder({
-                    customerDetails: {
-                        name: customerName,
-                        phone: customerPhone,
-                        guests: customerData?.guests || 1,
-                    },
-                    orderStatus: "completed",
-                    bills: {
-                        totals: subtotal,
-                        tax: taxAmount,
-                        totalWithTax: totalPriceWithTax,
-                    },
-                    items: items,
-                    paymentMethod: paymentMethod,
-                    paymentStatus: "Completed"
-                });
+                await persistOrder(paymentMethod);
                 enqueueSnackbar("Order placed successfully!", { variant: "success" });
                 dispatch(clearCart());
                 openModal();
@@ -147,8 +155,8 @@ const Bill = () => {
                 key: data.key,
                 amount: data.order.amount,
                 currency: data.order.currency,
-                name: "RESTRO",
-                description: "SECURE PAYMENT FOR YOUR MEAL",
+                name: restaurantName,
+                description: `SECURE PAYMENT FOR ${restaurantName.toUpperCase()}`,
                 order_id: data.order.id,
                 handler: async function (response) {
                     const verification = await verifyPaymentRazorpay(response);
@@ -160,22 +168,7 @@ const Bill = () => {
                         });
                         
                         try {
-                            await addOrder({
-                                customerDetails: {
-                                    name: customerName,
-                                    phone: customerPhone,
-                                    guests: customerData?.guests || 1,
-                                },
-                                orderStatus: "completed",
-                                bills: {
-                                    totals: subtotal,
-                                    tax: taxAmount,
-                                    totalWithTax: totalPriceWithTax,
-                                },
-                                items: items,
-                                paymentMethod: "Card",
-                                paymentStatus: "Completed"
-                            });
+                            await persistOrder("Card");
                         } catch (error) {
                             console.error("Failed to save order in DB", error);
                         }
@@ -271,7 +264,9 @@ const Bill = () => {
             <ReceiptModal isOpen={isModalOpen} onClose={closeModal} title="RECEIPT">
                 {/* Header */}
                 <div className="mx-auto text-center mb-3">
-                    <img src={logo} alt="logo" className="h-12 w-12 mx-auto mb-2 grayscale" />
+                    {settings.logo ? (
+                        <img src={settings.logo} alt="logo" className="h-12 w-12 mx-auto mb-2 grayscale object-cover rounded-full" />
+                    ) : null}
                     <h2 className="text-xl font-bold text-[#f5f5f5] uppercase">{restaurantName}</h2>
                     <p className="text-xs text-[#ababab]">123 Culinary Street, Food City</p>
                     <p className="text-xs text-[#ababab]">Phone: +91 2345678908</p>
@@ -378,9 +373,26 @@ const Bill = () => {
 
                 {/* Print Button */}
                 <button 
-                    onClick={() => {
-                        closeModal();
-                        window.print();
+                    onClick={async () => {
+                        const receiptPaymentMethod = receiptData?.paymentMethod || paymentMethod;
+
+                        try {
+                            if (!orderPlaced && receiptPaymentMethod && receiptPaymentMethod !== "Card") {
+                                await persistOrder(receiptPaymentMethod);
+                                enqueueSnackbar("Order placed successfully!", { variant: "success" });
+                            }
+
+                            const handleAfterPrint = () => {
+                                closeModal();
+                                window.removeEventListener('afterprint', handleAfterPrint);
+                            };
+
+                            window.addEventListener('afterprint', handleAfterPrint);
+                            window.print();
+                        } catch (error) {
+                            console.error("Failed to finalize order before printing", error);
+                            enqueueSnackbar("Failed to place order before printing.", { variant: "error" });
+                        }
                     }}
                     className="w-full bg-[#025cca] text-[#f5f5f5] rounded-lg py-3 mt-4 text-lg font-bold hover:bg-[#0249a0] transition-colors"
                 >

@@ -34,12 +34,14 @@ const Header = () => {
         logoutMutation.mutate();
     }
 
+    const settings = useSelector((state) => state.settings || {});
+
     return (
         <header className="flex justify-between items-center by px-8 bg-[#1a1a1a] h-[80px]">
             {/*Logo*/}
             <div className="flex items-center gap-2">
-                <img src = {logo} alt="logo" className="h-10 w-10"/>
-                <h1 className="text-lg font-semibold text-[#f5f5f5]">Restro</h1>
+                <img src={settings.logo || logo} alt="logo" className="h-10 w-10 rounded-full object-cover" />
+                <h1 className="text-lg font-semibold text-[#f5f5f5]">{settings.restaurantName || 'Restro'}</h1>
             </div>
 
             {/*Search*/}

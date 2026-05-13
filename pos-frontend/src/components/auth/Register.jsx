@@ -22,7 +22,10 @@ const Register = ({ setIsRegister }) => {
 
     const handleSubmit = (event) => {
         event.preventDefault();
-        registerMutation.mutate(formData);
+        registerMutation.mutate({
+            ...formData,
+            email: formData.email.trim().toLowerCase(),
+        });
     }
 
     const handleRoleSelection = (selectedRole) => {
@@ -110,7 +113,7 @@ const Register = ({ setIsRegister }) => {
                     </label>
                     <div className='flex items-center rounded-lg border border-white/5 bg-[#1f1f1f] px-4 py-2.5'>
                         <input 
-                            type="number" 
+                            type="tel" 
                             name="phone" 
                             value={formData.phone}
                             onChange={handleChange}

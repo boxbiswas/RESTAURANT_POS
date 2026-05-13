@@ -32,6 +32,7 @@ const useLoadData = () => {
                             discountPercent: s.discountPercent,
                             receiptFooter: s.receiptFooter,
                             restaurantName: s.restaurantName,
+                            logo: s.logo || '',
                         }));
                         if (s.categories && s.categories.length > 0) {
                             dispatch(setMenu({ categories: s.categories, dishes: s.dishes || [] }));

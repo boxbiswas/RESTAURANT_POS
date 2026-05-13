@@ -69,8 +69,9 @@ const AdditionalSettingsSection = ({
                     <div className='flex flex-col justify-center rounded-lg border border-[#343434] bg-[#1f1f1f] px-3 py-2'>
                         <label className='mb-1 block text-xs font-semibold text-[#d6d6d6]'>Discount (%)</label>
                         <input
-                            type='number'
-                            min='0'
+                            type='text'
+                            inputMode='decimal'
+                            autoComplete='off'
                             value={discountPercent}
                             onChange={(event) => setDiscountPercent(event.target.value)}
                             className='w-full rounded-md border border-[#3b3b3b] bg-[#2a2a2a] px-2 py-1.5 text-sm text-white outline-none transition focus:border-[#f6b100]'

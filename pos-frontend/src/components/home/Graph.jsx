@@ -11,9 +11,24 @@ import {
 
 ChartJS.register(CategoryScale, LinearScale, BarElement, Tooltip, Legend);
 
+const peakHourLabels = [
+    '12 AM - 2 AM',
+    '2 AM - 4 AM',
+    '4 AM - 6 AM',
+    '6 AM - 8 AM',
+    '8 AM - 10 AM',
+    '10 AM - 12 PM',
+    '12 PM - 2 PM',
+    '2 PM - 4 PM',
+    '4 PM - 6 PM',
+    '6 PM - 8 PM',
+    '8 PM - 10 PM',
+    '10 PM - 12 AM',
+];
+
 const Graph = ({ peakHourData = [], paymentMethodData = [] }) => {
     const peakHourChart = {
-        labels: ['12-2', '2-4', '4-6', '6-8', '8-10'],
+        labels: peakHourLabels,
         datasets: [
             {
                 label: 'Orders',

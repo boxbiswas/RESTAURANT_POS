@@ -26,7 +26,10 @@ const Login = () => {
     
         const handleSubmit = (event) => {
             event.preventDefault();
-            loginMutation.mutate(formData);
+            loginMutation.mutate({
+                ...formData,
+                email: formData.email.trim(),
+            });
         }
     
         const loginMutation = useMutation({

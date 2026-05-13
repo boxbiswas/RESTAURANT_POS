@@ -1,4 +1,4 @@
-import { React, useMemo, useState } from "react";
+import React, { useMemo, useState } from "react";
 import { GrRadialSelected } from "react-icons/gr";
 import { FaShoppingCart, FaFire } from "react-icons/fa";
 import { useDispatch, useSelector } from "react-redux";
@@ -15,6 +15,8 @@ const getIconForCategory = (name) => {
     return <MdOutlineFastfood />;
 };
 
+const THEME_COLOR = '#f6b100';
+
 const MenuContainer = () => {
     const dispatch = useDispatch();
     const cartItems = useSelector(getCartItems);
@@ -29,8 +31,7 @@ const MenuContainer = () => {
         return categories.map((cat) => ({
             id: cat.id,
             name: cat.name,
-            bgColor: cat.bgColor || "#f6b100",
-            icon: <button className="bg-[#f6b100] p-3 rounded-lg text-[#1b1b1b] text-xl">{getIconForCategory(cat.name)}</button>,
+            icon: <div className="bg-[#f6b100] p-3 rounded-lg text-[#1b1b1b] text-xl">{getIconForCategory(cat.name)}</div>,
             items: dishes.filter(d => d.category === cat.name),
         }));
     }, [categories, dishes]);
@@ -100,7 +101,7 @@ const MenuContainer = () => {
                                     ? "text-[#1a1a1a] shadow-xl scale-105 border-transparent"
                                     : "bg-[#1a1a1a] text-[#ababab] border-[#2a2a2a] hover:border-[#f6b100] hover:text-[#f5f5f5]"
                             }`}
-                            style={isSelected ? { backgroundColor: menu.bgColor } : {}}
+                            style={isSelected ? { backgroundColor: THEME_COLOR } : {}}
                         >
                             <span className="text-xl">{menu.icon}</span>
                             <span>{menu.name}</span>

@@ -1,4 +1,5 @@
 import { useMemo, useState } from 'react';
+import { useEffect } from 'react';
 import { useSnackbar } from 'notistack';
 import { useDispatch, useSelector } from 'react-redux';
 import { addCategory as addReduxCategory, updateCategory, removeCategory, addDish as addReduxDish, updateDish, removeDish as removeReduxDish } from '../redux/slices/menuSlice';
@@ -6,6 +7,9 @@ import { updateSettings } from '../redux/slices/settingsSlice';
 import { saveSettingsApi } from '../https/index';
 
 export const useSettingsState = () => {
+        const createClientId = () => Date.now() + Math.floor(Math.random() * 100000);
+    const normalizePercentValue = (value) => String(value ?? '').trim();
+
     const { enqueueSnackbar } = useSnackbar();
     const dispatch = useDispatch();
 
@@ -18,7 +22,14 @@ export const useSettingsState = () => {
     // Restaurant Profile
     const [restaurantName, setRestaurantName] = useState(posSettings.restaurantName || 'Restro Cafe');
     const [logoFile, setLogoFile] = useState(null);
-    const [logoPreview, setLogoPreview] = useState('');
+    const [logoPreview, setLogoPreview] = useState(posSettings.logo || '');
+
+    // Keep local preview in sync when settings load/update from Redux
+    useEffect(() => {
+        if (posSettings.logo && posSettings.logo !== logoPreview) {
+            setLogoPreview(posSettings.logo);
+        }
+    }, [posSettings.logo]);
 
     // Categories Local State
     const [newCategory, setNewCategory] = useState('');
@@ -39,7 +50,7 @@ export const useSettingsState = () => {
     const [taxPercent, setTaxPercent] = useState(posSettings.taxPercent || '5');
     const [serviceCharge, setServiceCharge] = useState(posSettings.serviceCharge || '0');
     const [allowDiscounts, setAllowDiscounts] = useState(posSettings.allowDiscounts ?? true);
-    const [discountPercent, setDiscountPercent] = useState(posSettings.discountPercent || '0');
+    const [discountPercent, setDiscountPercent] = useState(normalizePercentValue(posSettings.discountPercent) || '0');
     const [receiptFooter, setReceiptFooter] = useState(posSettings.receiptFooter || 'Thank you for dining with us. Visit again!');
 
     const stats = useMemo(() => ({
@@ -69,7 +80,7 @@ export const useSettingsState = () => {
         if (categories.some((c) => c.toLowerCase() === trimmed.toLowerCase()))
             return enqueueSnackbar('This category already exists.', { variant: 'warning' });
         
-        dispatch(addReduxCategory({ id: Date.now(), name: trimmed, bgColor: "#f6b100" }));
+        dispatch(addReduxCategory({ id: createClientId(), name: trimmed, bgColor: "#f6b100" }));
         setNewCategory('');
         if (!selectedCategory) setSelectedCategory(trimmed);
         if (!dishCategory) setDishCategory(trimmed);
@@ -111,7 +122,7 @@ export const useSettingsState = () => {
         if (!trimmedName || !dishCategory || Number.isNaN(numericPrice) || numericPrice <= 0)
             return enqueueSnackbar('Enter dish name, valid price, and category.', { variant: 'warning' });
         
-        dispatch(addReduxDish({ id: Date.now(), name: trimmedName, price: numericPrice, category: dishCategory }));
+        dispatch(addReduxDish({ id: createClientId(), name: trimmedName, price: numericPrice, category: dishCategory }));
         setDishName('');
         setDishPrice('');
         enqueueSnackbar('Dish added.', { variant: 'success' });
@@ -160,22 +171,39 @@ export const useSettingsState = () => {
             taxPercent,
             serviceCharge,
             allowDiscounts,
-            discountPercent,
+            discountPercent: normalizePercentValue(discountPercent),
             receiptFooter,
+            logo: logoPreview || posSettings.logo || ''
         };
 
-        dispatch(updateSettings(settingsToSave));
-
         try {
-            await saveSettingsApi({
+            // send to backend and use response to sync Redux state
+            const res = await saveSettingsApi({
                 ...settingsToSave,
                 categories: reduxCategories,
                 dishes: dishes
             });
+            // backend returns updated settings in res.data.data
+            const saved = res?.data?.data;
+            if (saved) {
+                // normalize values to strings for Redux (existing slice uses strings)
+                dispatch(updateSettings({
+                    currency: saved.currency,
+                    taxPercent: saved.taxPercent,
+                    serviceCharge: saved.serviceCharge,
+                    allowDiscounts: saved.allowDiscounts,
+                    discountPercent: normalizePercentValue(saved.discountPercent),
+                    receiptFooter: saved.receiptFooter,
+                    restaurantName: saved.restaurantName,
+                    logo: saved.logo || ''
+                }));
+            }
+            console.log('Saved settings payload:', settingsToSave);
+            console.log('Backend returned:', saved);
             enqueueSnackbar('Settings saved to database successfully.', { variant: 'success' });
         } catch (error) {
-            console.error(error);
-            enqueueSnackbar('Failed to save settings to database.', { variant: 'error' });
+            console.error('Failed saving settings:', error);
+            enqueueSnackbar(error?.response?.data?.message || 'Failed to save settings to database.', { variant: 'error' });
         }
     };
 

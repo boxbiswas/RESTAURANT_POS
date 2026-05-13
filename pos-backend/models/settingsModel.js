@@ -7,7 +7,8 @@ const settingsSchema = new mongoose.Schema({
     allowDiscounts: { type: Boolean, default: true },
     discountPercent: { type: String, default: '0' },
     receiptFooter: { type: String, default: 'Thank you for dining with us. Visit again!' },
-    restaurantName: { type: String, default: 'Restro Cafe' }
+    restaurantName: { type: String, default: 'Restro Cafe' },
+    logo: { type: String, default: '' }
 }, { timestamps: true });
 
 module.exports = mongoose.model('Settings', settingsSchema);

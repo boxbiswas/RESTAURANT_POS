@@ -1,6 +1,7 @@
 import React from 'react';
 import restraunt from '../assets/images/restraunt.jpg';
 import logo from '../assets/images/logo.png';
+import { useSelector } from 'react-redux';
 import Login from '../components/auth/Login';
 import Register from '../components/auth/Register';
 import { useState } from 'react';
@@ -8,6 +9,8 @@ import { useState } from 'react';
 const Auth = () => {
 
     const [isRegister, setIsRegister] = useState(false);
+
+    const settings = useSelector((state) => state.settings || {});
 
     return (
         <div className='relative h-screen w-full overflow-hidden'>
@@ -48,8 +51,8 @@ const Auth = () => {
                 <div className='ml-auto flex h-full w-full max-w-135 items-stretch justify-center lg:pl-8'>
                     <div className='flex h-full max-h-[calc(100vh-2rem)] w-full flex-col justify-start gap-2 overflow-hidden rounded-4xl border border-white/15 bg-white/10 p-3 shadow-2xl shadow-black/30 backdrop-blur-2xl sm:p-4 lg:p-5'>
                         <div className='flex flex-col items-center gap-1.5'>
-                            <img src={logo} alt='Logo' className='h-10 w-10 rounded-full border-2 border-white/10 p-1' />
-                            <h1 className='text-xs font-semibold uppercase tracking-[0.3em] text-[#f5f5f5]'>Restro</h1>
+                            <img src={settings.logo || logo} alt='Logo' className='h-10 w-10 rounded-full border-2 border-white/10 p-1 object-cover' />
+                            <h1 className='text-xs font-semibold uppercase tracking-[0.3em] text-[#f5f5f5]'>{settings.restaurantName || 'Restro'}</h1>
                         </div>
 
                         <div className='text-center'>
